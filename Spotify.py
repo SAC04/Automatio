@@ -2,12 +2,25 @@ import base64
 import datetime
 import requests
 import json
-from urllib.parse import urlencode
-access_token = None
+import os
+import spotipy
+import spotipy.util as util
+from spotipy.oauth2 import SpotifyOAuth
+from spotipy import oauth2
+from bottle import route, run, request
 
-client_id = 'b5007a6c65f3416fb9618fe37b63d150'
-client_secret = 'c893d520b1914d3894b04493563f3528'
+
+from urllib.parse import urlencode
+from urllib.parse import quote
+
+access_token = None
+client_id = '951ede4b16b54085b9032a2f95b5c368'
+client_secret = '6a7adf848d5449b1a25a4c06c89e6596'
 token_url = "https://accounts.spotify.com/api/token"
+redirect_uri = "http://127.0.0.1/8080/callback/"
+cache = '.spotipyoauthcache'
+
+
 
 def get_songslist():
     f = open("playInfo.json", "r")
@@ -21,11 +34,11 @@ def get_songslist():
 # youtube_dl.YoutubeDL({}).extract_info(youtube_url, download=False)
 
 def get_spotifytoken():
-    spotify_token = "BQBBrzP0bi_bVMmB4rAnOdiHuNvSLK9PbEAtvEwCkzFBGNHivv2FsxmJI3LqATmbUi04hLA5xcCYoJrdqdIM4oX6-rN9rgParVXmH0by2dBcI_JPG2Epjo25yiLsDISeNjuOVkQhyxyThhUNx-nDJJKNqidoS_yQ01vSdudp0d0frnzE_dJdPVEO4suiGDZS4CfyD8ObAFprTDFVMyBkB_O2m_awejIjw7ORFBn5iQZeRunz-ZYgrA4sqlVZmKqGd0jku56yrdBv1rtqfhws3Lo"
+    spotify_token = "BQC0K5KhZeDXiPdeKokEqg7n8Moo8jz12GiYPAVCNS4T1is7_M59UI22Pe5LG5rYjVadpO3e2amIgTTxLAe4O9G1eNXKKfcYjiU2aOsYWPgn3lNEZbvUBjCCRDj4_zG_pupEgyk0JvIja2XhKYGhfcjylkaOM0fOjQZ6NXPNRrH68LZbSufBEuqkbtzc5mARWPQAKxSMspn2nSwJggzJMc2JM4m2hWwycUTFt99YSv5WkgT23tt9_lU"
     return spotify_token
 
 def get_SpotifyID():
-    spotify_userid = "21zdgkswonrwtz44hhawko77q"
+    spotify_userid = "juwdi1k8oh59r5vj70uyg5hgm"
     return spotify_userid
 
 def open_file():
@@ -52,10 +65,9 @@ def get_token_data():
             "grant_type": "client_credentials"
         }
 
-# def search()
 
 def add_songs(playlistID):
-    songslist = get_songslist()
+    songslist =  get_songslist()
     urilist = []
     for i in songslist:
         arr = i.split(" ")
@@ -105,7 +117,9 @@ def create_playlist(playlist_name):
         }
     )
     response_json = response.json()
+    # print(response_json)
     return response_json['id']
+    
 def transfer_playlist(playlist_name):
     playlist_id = create_playlist(playlist_name)
     add_songs(playlist_id)
@@ -136,7 +150,7 @@ def get_userID():
 
 #def create_playlist(playList_name):
 
-def Dump_It(response,filename):
+def Dump_It(response, filename):
     out_file = open(filename, "w")
     y = json.dump(response , out_file, indent = 6)
     out_file.close()
@@ -147,7 +161,7 @@ def searchSong(songname):
     endpoint = "https://api.spotify.com/v1/search"
     data = urlencode({"q": songname, "type": "track" , "limit": "1"})
     lookup_url = f"{endpoint}?{data}"
-    r = requests.get(lookup_url, headers=headers)
+    r = requests.get(lookup_url, headers = headers)
     if not r.json()['tracks']['items']:
         return ""
     else:
@@ -155,13 +169,4 @@ def searchSong(songname):
         return select_song
 
 if __name__ == '__main__':
-
-#    get_userID()
-    # playlistID = create_playlist("lauda lassan")
     transfer_playlist("Hip-Hop")
-#    searchSong("Panic! At The Disco - High Hopes ")
-#    Dump_It(r.json() , "spotifysearch.json")
-#    filter()
-#    sp = spotipy.client.Spotify(auth=perform_auth)
-#    results = sp.me()
-#    print(results)

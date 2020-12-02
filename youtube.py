@@ -2,8 +2,6 @@ import os
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import json
-import youtube_dl
-
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -23,30 +21,10 @@ API_VERSION = 'v3'
 def get_authenticated_service():
 	flow = InstalledAppFlow.from_client_secrets_file(
 						CLIENT_SECRETS_FILE, SCOPES)
-
 	credentials = flow.run_console()
 	return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
 
-# def get_songs(id):
-# 	songsarr = {}
-# 	response = getSongsfromfile()
-# 	for item in response["items"]:
-# 		video_title = item["snippet"]["title"]
-#
-# 		youtube_url = "https://www.youtube.com/watch?v={}".format(item["id"])
-# 		video = youtube_dl.YoutubeDL({}).extract_info(youtube_url, download = False)
-# 		song_name = video["track"]
-# 		artist = video["artist"]
-# 		print(song_name)
-# 		if song_name is not None and artist is not None:
-# 			songsarr[video_title] = {
-#                     "youtube_url": youtube_url,
-#                     "song_name": song_name,
-#                     "artist": artist,
-#                 }
-# 	return songarr
-
-def Dump_It(response,filename):
+def storeResponse(response, filename):
     out_file = open(filename, "w")
     y = json.dump(response , out_file, indent = 6)
     out_file.close()
@@ -60,67 +38,25 @@ def playlists_songs(client , id):
     response  = request.execute()
     return response
 
-def get_playlistid():
+def get_playlistid(index):
 	f = open("myfile.json", "r")
 	data = json.loads(f.read())
-	return data['items'][1]['id']
+	return data['items'][index]['id']
 
-
-def getSongsfromfile():
-	f = open("playInfo.json", "r")
+def get_playlisttitle(index):
+	f = open("myfile.json", "r")
 	data = json.loads(f.read())
-	return data
+	return data['items'][index]['snippet']['title']
+
+
+def getSongs(response):
+	song_arr=[]
+	for i in response['items']:
+		song_arr.append(i['snippet']['title'])
+	return song_arr
 
 def print_response(response):
 	print(response)
-
-# Build a resource based on a list of
-# properties given as key-value pairs.
-# Leave properties with empty values
-# out of the inserted resource.
-def build_resource(properties):
-    resource = {}
-    for p in properties:
-    	# Given a key like "snippet.title", split
-    	# into "snippet" and "title", where
-    	# "snippet" will be an object and "title"
-    	# will be a property in that object.
-    	prop_array = p.split('.')
-    	ref = resource
-    	for pa in range(0, len(prop_array)):
-        	is_array = False
-        	key = prop_array[pa]
-
-    	# For properties that have array values, convert a name like
-    	# "snippet.tags[]" to snippet.tags, and set a flag to handle
-    	# the value as an array.
-    	if key[-2:] == '[]':
-    		key = key[0:len(key)-2:]
-    		is_array = True
-
-    	if pa == (len(prop_array) - 1):
-    		# Leave properties without values out of inserted resource.
-    		if properties[p]:
-        		if is_array:
-        			ref[key] = properties[p].split(', ')
-        		else:
-        			ref[key] = properties[p]
-    	elif key not in ref:
-    		# For example, the property is "snippet.title",
-    		# but the resource does not yet have a "snippet"
-    		# object. Create the snippet object here.
-    		# Setting "ref = ref[key]" means that in the
-    		# next time through the "for pa in range ..." loop,
-    		# we will be setting a property in the
-    		# resource's "snippet" object.
-    		ref[key] = {}
-    		ref = ref[key]
-    	else:
-    		# For example, the property is
-    		# "snippet.description", and the resource
-    		# already has a "snippet" object.
-    		ref = ref[key]
-    return resource
 
 # Remove keyword arguments that are not set
 def remove_empty_kwargs(**kwargs):
@@ -133,9 +69,7 @@ def remove_empty_kwargs(**kwargs):
 
 def playlists_mine(client, **kwargs):
     kwargs = remove_empty_kwargs(**kwargs)
-
     response = client.playlists().list(**kwargs).execute()
-
     return response
 
 
@@ -146,17 +80,21 @@ if __name__ == '__main__':
 # HTTPs verification. When
 # running in production * do not *
 # leave this option enabled.
-#    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-#    client = get_authenticated_service()
-#
-#
-# response = playlists_mine(client,
-# 	part ='snippet, contentDetails',
-# 	mine = True,
-# 	maxResults = 10,
-# 	onBehalfOfContentOwner ='',
-# 	onBehalfOfContentOwnerChannel ='')
-	id = get_playlistid()
-	songarr = get_songs( id)
-	print(songarr)
-# printSongs(client)
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    client = get_authenticated_service()
+
+
+    response = playlists_mine(client,
+        part ='snippet, contentDetails',
+        mine = True,
+        maxResults = 10,
+        onBehalfOfContentOwner ='',
+        onBehalfOfContentOwnerChannel ='')
+
+    storeResponse(response , "myfile.json")
+    playlist_number = 0
+    id = get_playlistid(playlist_number)
+    title = get_playlisttitle(playlist_number)
+    songs_res = playlists_songs(client , id)
+    songarr = getSongs(songs_res)
+    storeResponse(songs_res ,   "playInfo.json")
